@@ -9,6 +9,10 @@
   "author": "darrell pratt",
   "license": "MIT",
   "dependencies": {
-    "cheerio": "^0.17.0"
+    "cheerio": "^0.17.0",
+    "phantomjs": "^1.9.10",
+    "underscore": "^1.7.0",
+    "request": "^2.45.0",
+    "chalk": "^0.5.1"
   }
 }
