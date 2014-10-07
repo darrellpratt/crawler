@@ -13,6 +13,7 @@
     "phantomjs": "^1.9.10",
     "underscore": "^1.7.0",
     "request": "^2.45.0",
-    "chalk": "^0.5.1"
+    "chalk": "^0.5.1",
+    "when": "^3.5.0"
   }
 }
