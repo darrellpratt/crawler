@@ -8,6 +8,7 @@ var cheerio = require('cheerio'),
 
 var baseUrl = 'http://www.cars.com';
 var urlList = new Array();
+var pageCount = 0;
 
 // start at base
 main(baseUrl, output);
@@ -45,7 +46,7 @@ function inspectLink(url) {
 };
 
 function loadInitial(url, cb, done, fn) {
-    console.log(chalk.blue('fetching url: ' + url));
+    console.log(chalk.blue(++pageCount + ' fetching url: ' + url));
     request(url, function(err, res, body) {
         // console.log(body);
         var $ = cheerio.load(body);
