@@ -2,7 +2,8 @@ var cheerio = require('cheerio'),
     _ = require('underscore'),
     request = require('request'),
     when = require('when'),
-    chalk = require('chalk');
+    chalk = require('chalk'),
+    fs = require('fs');
 
 
 
@@ -10,24 +11,28 @@ var baseUrl = 'http://www.cars.com';
 var urlList = new Array();
 var masterUrlList = new Array();
 var pageCount = 0;
+var log = fs.createWriteStream('log.txt', {'flags': 'a'});
 
 // start at base
 main(baseUrl, output);
 
 function main(base, cb) {
+    
     console.log(chalk.red('starting'));
     loadInitial('http://www.cars.com', inspectLink, clean, cb);
 };
 
 function clean(cb) {
     console.log(chalk.red('cleaning'));
-    var uniqueList = _.uniq(urlList);
+    var uniqueList = _.uniq(masterUrlList);
     console.log(uniqueList);
     // cb(uniqueList);
     _.each(uniqueList, function(element) {
         // console.log(chalk.white(element));
         loadInitial(baseUrl + element, inspectLink, clean, output);
-    })
+    });
+    masterUrlList = new Array();
+    console.log(urlList.length);
 };
 
 function recurseList(url) {
@@ -47,26 +52,52 @@ function hashCode(s) {
     //     a = ((a << 5) - a) + b.charCodeAt(0);
     //     return a & a
     // }, 0);
-    var hash = 0,
-        i, chr, len;
-    if (s == 0) return hash;
-    for (i = 0, len = s.length; i < len; i++) {
-        chr = s.charCodeAt(i);
-        hash = ((hash << 5) - hash) + chr;
-        hash |= 0; // Convert to 32bit integer
+    return hashFnv32a(s, true);
+};
+
+function hashFnv32a(str, asString, seed) {
+    /*jshint bitwise:false */
+    var i, l,
+        hval = (seed === undefined) ? 0x811c9dc5 : seed;
+
+    for (i = 0, l = str.length; i < l; i++) {
+        hval ^= str.charCodeAt(i);
+        hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
     }
-    return hash;
+    if( asString ){
+        // Convert to 8 digit hex string
+        return ("0000000" + (hval >>> 0).toString(16)).substr(-8);
+    }
+    return hval >>> 0;
+};
+
+function isUrlGood(url) {
+    var isGood = false;
+        if (!/^(f|ht)tps?:\/\//i.test(url) 
+        && /^\/.*/.test(url) 
+        && url.indexOf('//') < 0 
+        && url !== '/' 
+        && !/video/.test(url)
+        && !/for-sale/.test(url)
+        && !/vehicledetail/.test(url)) {
+        
+        isGood = true;
+    };
+    
+    return isGood;
 };
 
 
 function inspectLink(url) {
     // console.log(chalk.red('inspectLink'));
     // console.log(chalk.blue(url));
-    if (!/^(f|ht)tps?:\/\//i.test(url) && /^\/.*/.test(url) && url.indexOf('//') < 0 && url !== '/' && !/video/.test(url)) {
+    if (isUrlGood(url)) {
         // should check here for uniqueness
         if (_.indexOf(urlList, hashCode(url)) == -1) {
-            console.log(chalk.yellow('legitimate url: ' + url))
+            console.log(chalk.yellow('legitimate url: ' + url));
+            log.write(url + '\n');
             urlList.unshift(hashCode(url));
+            masterUrlList.unshift(url);
             console.log(chalk.green(urlList.length));
             // console.log(chalk.blue(url));
         }
@@ -74,8 +105,8 @@ function inspectLink(url) {
 };
 
 function loadInitial(url, cb, done, fn) {
-    // console.log(chalk.red('loadInitial'));
-    // console.log(chalk.blue(++pageCount + ' fetching url: ' + url));
+    console.log(chalk.red('loadInitial'));
+    console.log(chalk.blue(++pageCount + ' fetching url: ' + url));
     request(url, function(err, res, body) {
         // console.log(body);
         if (!err) {
